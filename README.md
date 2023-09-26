@@ -19,7 +19,7 @@ Place your configuration settings such as latitude, longitude, and OWM API key i
 - **NWS**: Retrieves alerts every 30 seconds at no cost.
 
 ## Data Prioritization
-- **Current Weather**: OpenWeatherMap data is prioritized for displaying current weather conditions. This is because NWS data is updated only once an hour and often with a delay, potentially making the data up to 90 minutes old.
+- **Current Weather**: OpenWeatherMap data is prioritized for displaying current weather conditions. This is because NWS data is inconsistenly updated and often with a delay, often resulting in stale data. However, if an OWM API key is invalid or unauthorized, NWS data will be used.
   
 - **Forecasts**: NWS data is used for hourly and daily forecasts, as it is updated more frequently than current conditions.
 
