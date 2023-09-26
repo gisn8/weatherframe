@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Questrial&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+    <script src="script.js" defer></script>
+
+    <!-- Below taken from https://www.eldoradoweather.com/current/misc/maproom/leaflet/leaflet.php -->
+
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Cache-Control" content="no-cache" />
+    <link rel="SHORTCUT ICON" href="favicon.ico" type="image/x-icon" />
+    <!-- <link rel="stylesheet" type="text/css" href="css/main.css" media="screen,projection" /> -->
+    <!-- <link rel="stylesheet" type="text/css" href="/css/cssmenu-teal.css" media="screen" title="screen" /> -->
+    <!-- <script type="text/javascript" src="/css/dhtml.js"></script> -->
+
+    <!-- Load Leaflet from CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+    integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+    crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+    integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+    crossorigin=""></script>
+
+
+    <!-- Load Esri Leaflet from CDN -->
+    <script src="https://unpkg.com/esri-leaflet@2.3.0/dist/esri-leaflet.js"
+    integrity="sha512-1tScwpjXwwnm6tTva0l0/ZgM3rYNbdyMj5q6RSQMbNX6EUMhYDE3pMRGZaT41zHEvLoWEK7qFEJmZDOoDMU7/Q=="
+    crossorigin=""></script>
+
+    <script src="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/plugins/leaflet0.7/leaflet.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/style/style.css"/> 
+    <script src="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/plugins/leaflet.groupedlayercontrol.js"></script>
+    <script src="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/style/leaflet.groupedlayercontrol.css"></script>
+    <script src="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/plugins/l.control.geosearch.js"></script>
+    <link rel="stylesheet" href="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/style/l.geosearch.css" />
+    <script src="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/plugins/l.geosearch.provider.esri.js"></script>
+    <script src="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/plugins/L.Control.ZoomMin.js"></script>
+    <link rel="stylesheet" href="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/style/L.Control.ZoomMin.css" media="screen">
+    <script src="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/plugins/Control.FullScreen.js"></script>
+    <link rel="stylesheet" href="https://www.wpc.ncep.noaa.gov/proto_gudes/jason/style/Control.FullScreen.css" />
+    <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"> -->
+    <link rel="stylesheet" href="https://domoritz.github.io/leaflet-locatecontrol/dist/L.Control.Locate.min.css" />
+    <script src="https://domoritz.github.io/leaflet-locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+    <!-- <script src="//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-image/v0.0.4/leaflet-image.js"></script> -->
+</head>
+<body>
+    <div class="container">
+        <div class="top-section-container">
+            <!-- Slideshow container -->
+            <iframe class="slideshow" id="slideshow" src="" frameborder="0"></iframe>
+            
+            <!-- Current Weather and Radar -->
+            <div class="side-panel-container">
+
+                <div class="basic-data-container column">
+                    
+                    <div class="row" id="date-time"><!-- Date and Time will appear here --></div>
+
+                    <center>
+                        <div class="current-weather-container row">  
+                                <div class="column"></div><!-- spacer -->
+                                <img alt="Weather Icon" class="column" id="weather-icon">
+                                <div class="column"></div>
+                                <div class="temperature-container column">
+                                    <div class="current-temp row" id="current_temperature"></div>
+                                    <div class="high-low row">
+                                        <span id="day0_temp_max"></span>&nbsp;&nbsp;/&nbsp;&nbsp;<span id="day0_temp_min"></span>
+                                    </div>
+                                </div>
+                                <div class="column"></div><!-- spacer -->
+                        </div>
+                        
+                        <div class="weather-description">
+                            <br>
+                            Currently:<br>
+                            <b><span id="current_description"></span></b><br>
+                            <br>
+                            <span id="current_outlook_timing"></span>:<br>
+                            <b><span style="display: inline-block; margin-left:25px; margin-right:25px;" id="current_outlook_desc"></span></b>
+                        </div>
+                    </center>
+                </div>
+
+                <div class="radar-details-carousel">
+                    <div class="radar-details-item detailed-conditions" data-interval="2000">
+                        <center>
+                        <table>
+                            <tr>
+                                <td class="con-lbl">Last updated: </td><td \><td id="last_updated" \>
+                            </tr>
+                            <tr>
+                                <td class="con-lbl">Feels like: </td><td \><td id="current_feels" \>
+                            </tr>
+                            <tr>
+                                <td class="con-lbl">Humidity: </td><td \><td id="current_humidity" \>
+                            </tr>
+                            <tr>
+                                <td class="con-lbl">Clouds: </td><td \><td id="current_clouds" \>
+                            </tr>
+                            <tr>
+                                <td class="con-lbl">UV Index: </td><td \>
+                                    <td>
+                                        <div id="uviContainer">
+                                            <span id="uviValue"></span>
+                                        </div>
+                                    </td>
+                            </tr>
+                            <tr>
+                                <td class="con-lbl">Visibility: </td><td \><td id="current_visibility" \>
+                            </tr>
+                             <tr>
+                                <td class="con-lbl">Wind: </td><td \>
+                                    <td>
+                                        <span id="current_wind_speed"></span> /
+                                        <span id="current_wind_gust"></span>
+                                        <span id="card"></span>&nbsp;
+                                        <span class=rotate>↑</span>
+                                    </td>
+                            </tr>
+                            <tr height="100%"><td><b>Astronomy</b></td></tr>
+                            <tr>
+                                <td class="con-lbl">Sunrise: </td><td \><td id="day0_sunrise" \>
+                            </tr>
+                            <tr>
+                                <td class="con-lbl">Sunset: </td><td \><td id="day0_sunset" \>
+                            </tr>
+                            <tr>
+                                <td class="con-lbl">Moon Phase: </td><td \><td id="day0_moon_phase" \>
+                            </tr>
+                        </table>
+                        </center>
+                    </div>
+                    <!-- <div class="radar-details-item radar" data-interval="4000">
+                        <div id="mapid" style="width: 100%; height: 100%;"></div>
+                    </div> --> 
+                    <!-- Will come back to this another time. -->
+                </div>
+            </div>
+        </div>
+        <div class="alerts"></div>
+        <div class="outlook" id="outlook-cards-carousel"> <!-- Cards -->
+            <div class="outlook-item" id="outlook-daily">
+                <table class="outlook-table">
+                    <tr><td width="5px" \>
+                        <td><b>5-Day<br>Outlook:</b></td>
+                        <td width="20px" \>
+                        <td><img id="d1_icon"></td>
+                        <td>
+                            <b><span id="d1_dow"></span></b><br>
+                            <span id="d1_desc"></span><br>
+                            <span id="d1_hi"></span>/<span id="d1_lo"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="d2_icon"></td>
+                        <td>
+                            <b><span id="d2_dow"></span></b><br>
+                            <span id="d2_desc"></span><br>
+                            <span id="d2_hi"></span>/<span id="d2_lo"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="d3_icon"></td>
+                        <td>
+                            <b><span id="d3_dow"></span></b><br>
+                            <span id="d3_desc"></span><br>
+                            <span id="d3_hi"></span>/<span id="d3_lo"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="d4_icon"></td>
+                        <td>
+                            <b><span id="d4_dow"></span></b><br>
+                            <span id="d4_desc"></span><br>  
+                            <span id="d4_hi"></span>/<span id="d4_lo"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="d5_icon"></td>
+                        <td>
+                            <b><span id="d5_dow"></span></b><br>
+                            <span id="d5_desc"></span><br>
+                            <span id="d5_hi"></span>/<span id="d5_lo"></span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="outlook-item" id="outlook-hourly">
+                <table class="outlook-table">
+                    <tr><td width="5px" \>
+                        <td><b>8-Hour<br>Outlook:</b></td>
+                        <td width="20px" \>
+                        <td><img id="h1_icon"></td>
+                        <td>
+                            <b><span id="h1_hr"></span></b><br>
+                            <span id="h1_desc"></span><br>
+                            <span id="h1_temp"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="h2_icon"></td>
+                        <td>
+                            <b><span id="h2_hr"></span></b><br>
+                            <span id="h2_desc"></span><br>
+                            <span id="h2_temp"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="h3_icon"></td>
+                        <td>
+                            <b><span id="h3_hr"></span></b><br>
+                            <span id="h3_desc"></span><br>
+                            <span id="h3_temp"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="h4_icon"></td>
+                        <td>
+                            <b><span id="h4_hr"></span></b><br>
+                            <span id="h4_desc"></span><br>  
+                            <span id="h4_temp"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="h5_icon"></td>
+                        <td>
+                            <b><span id="h5_hr"></span></b><br>
+                            <span id="h5_desc"></span><br>
+                            <span id="h5_temp"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="h6_icon"></td>
+                        <td>
+                            <b><span id="h6_hr"></span></b><br>
+                            <span id="h6_desc"></span><br>
+                            <span id="h6_temp"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="h7_icon"></td>
+                        <td>
+                            <b><span id="h7_hr"></span></b><br>
+                            <span id="h7_desc"></span><br>
+                            <span id="h7_temp"></span>
+                        </td>
+                        <td width="20px" \>
+                        <td><img id="h8_icon"></td>
+                        <td>
+                            <b><span id="h8_hr"></span></b><br>
+                            <span id="h8_desc"></span><br>
+                            <span id="h8_temp"></span>
+                        </td>
+                        <td width="20px" \>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <div class="outlook-description"> <!-- Details -->
+            <div class="dailies-carousel">
+                <div class="dailies-item">
+                    <b><span id="p2_name"></span>:</b> <span id="p2_desc"></span><br \>
+                    <b><span id="p3_name"></span>:</b> <span id="p3_desc"></span>
+                </div>
+                <div class="dailies-item">
+                    <b><span id="p4_name"></span>:</b> <span id="p4_desc"></span><br \>
+                    <b><span id="p5_name"></span>:</b> <span id="p5_desc"></span>
+                </div>
+                <div class="dailies-item">
+                    <b><span id="p6_name"></span>:</b> <span id="p6_desc"></span><br \>
+                    <b><span id="p7_name"></span>:</b> <span id="p7_desc"></span>
+                </div>
+                <div class="dailies-item">
+                    <b><span id="p8_name"></span>:</b> <span id="p8_desc"></span><br \>
+                    <b><span id="p9_name"></span>:</b> <span id="p9_desc"></span>
+                </div>
+                <div class="dailies-item">
+                    <b><span id="p10_name"></span>:</b> <span id="p10_desc"></span><br \>
+                    <b><span id="p11_name"></span>:</b> <span id="p11_desc"></span>
+                </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+
+    <!-- <script src="map_control.js"></script> -->
+
+</body>
+</html>
+
+
+<!-- 
+<iframe src="https://docs.google.com/presentation/d/e/2PACX-1vTu8Tf6ldutjQxl8sxkmfC9f50ibbXfOgYWbB-5zMJ5vfrZzOwkv8e2USEhLkWLzxOY0BvOFLPRCyQM/embed?start=true&loop=true&delayms=3000" frameborder="0" width="1280" height="749" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
+-->

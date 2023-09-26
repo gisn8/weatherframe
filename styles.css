@@ -1,0 +1,224 @@
+body {
+    /* gradient from top (red) to bottom (blue) */
+    /*background: linear-gradient(red, blue);*/
+    background: linear-gradient(#0D1C34, #27549C);
+
+}
+
+
+.row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  flex-basis: 100%;
+  flex: 1;
+}
+
+.rotate { /* For wind direction arrow */
+    display: inline-block;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 99%; /* or whatever max width you want */
+    height: 98vh;
+    margin: 10px auto;
+    font-family: 'Questrial', sans-serif;
+}
+
+    .top-section-container {
+        display: flex;
+        justify-content: space-between;
+
+    }
+
+        .slideshow {
+            flex: 2; /* takes up 2/3 of the width */ 
+            background-color: #ffffffff;
+            width: 1280px;
+            height: 690px;
+        }
+
+
+
+        .side-panel-container {
+            flex: 1; /* takes up 1/3 of the width */
+            align-items: center;  /* Vertically centers the items */
+            color: white;
+        }
+
+            .basic-data-container {
+                height: 360px;
+                font-size: 24px;
+            }
+
+                #date-time {
+                    padding-left: 10px;
+                }
+
+                .current-weather-container {
+                    align-items: center;
+                    justify-content: center;
+                    margin-top: 10px;
+                }
+
+                    .weather-icon {                        
+                    }
+
+                    .temperature-container {
+                        display: flex;
+                        flex: 1;
+                        align-items: center;
+                    }
+
+                        .current-temp {
+                            font-size: 80px;
+                        }
+
+                        .high-low {
+                            font-size: 30px;
+                            margin: 10px 0;
+                        }
+
+                    .weather-description {
+                        font-size: 20px;
+                        justify-content: center;
+                    }
+
+            .radar-details-carousel {
+                height: 50%;
+                position: relative;
+                overflow: hidden; /* hide carousel items that are out of view */
+            }
+
+            .radar-details-item {
+                width: 100%;
+                height: 100%; /* covers the full height of the carousel container */
+                position: absolute;
+                top: 2.5%;
+                left: 0;
+                display: none; /* initially hide all items */
+            }
+
+            .radar, .detailed-conditions {
+                display: flex;
+                justify-content: center;  /* This will center the child horizontally */
+                align-items: center;      /* This will center the child vertically */
+                height: 100%;             /* This ensures the container takes up the full height of its parent. Adjust as needed */
+                color: black;
+                
+            }
+
+            .detailed-conditions {
+                margin-top: 30px;
+                margin-left: 20px;
+                font-size: 20px;
+                color: white;
+                overflow-y: auto;  /* to scroll if content overflows */
+            }
+
+            .con-lbl {
+                text-align: right;
+            }
+
+            #uviContainer {
+                padding: 1px 10px;  /* Just a sample, adjust padding as needed */
+                display: inline-block; 
+                border-radius: 2px;  /* To make corners rounded */
+            }
+
+            #uviValue {
+                font-weight: bold;  /* To make the UVI number stand out */
+            }
+
+
+            
+
+
+    .alerts {
+        width: 100%;
+        height: 50px;
+        position: relative;
+        font-size: 22px;
+        display: none;
+        overflow: hidden; /* hide the alerts that are not in view */
+
+    }
+
+        /* Default Alert Style */
+        .alert-item {
+            width: 100%;
+            height: 50px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: none;
+            padding-top: 2px;
+            padding-left: 6px;
+            padding-right: 4px;
+            background-color: yellow; /* Default background color for unknown alert types */
+            color: black; /* Default text color for unknown alert types */
+        }
+
+            /* Specific Alert Styles */
+            .minor-alert {
+                background-color: #2ecc71; /* Light Green */
+                color: black; /* Text color that offers good contrast with the light green background */
+            }
+
+            .moderate-alert {
+                background-color: #3498db; /* Blue */
+                color: white;
+            }
+
+            .severe-alert {
+                background-color: #f39c12; /* Orange */
+                color: black;
+            }
+
+            .extreme-alert {
+                background-color: #e74c3c; /* Red */
+                color: white;
+            }
+
+    .outlook {
+        width: 100%;
+        /*overflow-y: auto;  /* Add scrolling in case content overflows */
+        height:120px;
+    }
+
+    .outlook-table {
+        padding: 10px;
+        height:120px;
+        color: white;
+        font-size: 20px;
+        valign: center;
+    }
+
+    .outlook-description {
+        /*flex: 0.8; /* This will take up the remaining space of its container */
+        width: 100%;
+        color: white;
+        /*overflow-y: auto;  /* Add scrolling in case content overflows */
+    }
+
+    .outlook-item {
+        display: none;
+    }
+
+    .dailies-carousel {
+        height:100%;
+    }
+    .dailies-item {
+        display: none;
+        font-size: 16px;
+        margin-left: 20px;
+}
