@@ -7,20 +7,34 @@
     let countyCode;
     let countyAlertsURL;
 
+
 // Run on page launch
     document.addEventListener('DOMContentLoaded', async function() {
+
+        // Setting sources
         let data = await fetchNWSData(CONFIG.lat, CONFIG.lon);
-
-        if (testing == 0) {
-            alertsFromNOAA();
-        } else {
-            mockAlertsFromNOAA();
-        }
-
-        getCurrentWxData();
 
         document.getElementById('slideshow').src = CONFIG.googleSlideshowLink;
 
+        // There is a zoom setting difference
+        document.getElementById('radar-lg').src = `https://www.rainviewer.com/map.html?loc=${CONFIG.lat},${CONFIG.lon},8&oFa=1&oC=0&oU=0&oCS=1&oF=0&oAP=1&c=3&o=50&lm=1&layer=radar&sm=1&sn=1&hu=false`;
+        
+        document.getElementById('radar-sm').src = `https://www.rainviewer.com/map.html?loc=${CONFIG.lat},${CONFIG.lon},7&oFa=1&oC=0&oU=0&oCS=1&oF=0&oAP=1&c=3&o=50&lm=1&layer=radar&sm=1&sn=1&hu=false`;
+
+        console.log("RADAR: " + `https://www.rainviewer.com/map.html?loc=${CONFIG.lat},${CONFIG.lon},7&oFa=1&oC=0&oU=0&oCS=1&oF=0&oAP=1&c=3&o=50&lm=1&layer=radar&sm=1&sn=1&hu=false`)
+
+
+        alertsFromNOAA();
+
+        // // Fetch Alerts
+        // if (testing == 0) {
+        //     alertsFromNOAA();
+        // } else {
+        //     mockAlertsFromNOAA();
+        // }
+
+        // Fetch Wx Data
+        getCurrentWxData();
 
         console.log("Page event finished.")
     }); // End event listener
@@ -69,9 +83,13 @@
                 // For the Time and Date clock
                 options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', second:'2-digit'};
                 break;
-            case "ts":
+            case "dts":
                 // For dated timestamps
                 options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second:'2-digit'};
+                break;
+            case "tss":
+                // For timestamps w/ seconds
+                options = { hour: 'numeric', minute: '2-digit', second:'2-digit' };
                 break;
             case "time":
                 // For alerts and last updated
@@ -98,105 +116,54 @@
 
 
 // Load Alerts!
-    // Variable to store cached alerts
-    let cachedAlerts = [];
 
     function alertsFromNOAA(){
         let url = countyAlertsURL;
+        let alerts;
         console.log("County Alerts URL: " + countyAlertsURL)
-        console.log("Cached alerts: " + cachedAlerts)
-        fetchData(url).then(data => {
-            let alerts = data.features;
-            
+        
+        if (testing == 1) {
+            console.log("ALERT Testing Mode: ON")
+            alerts = mockData.features
+        } else {
+            fetchData(url).then(data => {
+                alerts = data.features;
+            })
+        }
 
-            // Check if the new alerts are different from cached alerts
-            if (JSON.stringify(alerts) !== JSON.stringify(cachedAlerts)) {
-                let formatted_texts = [];
-                let currentTime = new Date(); // Current time
+        if (alerts) {
+            console.log("Alerts found!")
 
-                alerts.forEach(alert => {
-                    let event = alert.properties.event;
-                    let severity = alert.properties.severity;
-                    let description = alert.properties.description;
-                    let alertstart = formatDateTime(alert.properties.onset,"time").toLowerCase();
-                    let alertexpires = formatDateTime(alert.properties.expires,"time").toLowerCase();
-                    let alertexpiresDate = new Date(alert.properties.expires); // Convert to Date object for comparison
-                    let headline = alert.properties.parameters.NWSheadline[0];
-                    
-                    // Check if the alert is still active
-                    if (alertexpiresDate > currentTime) {
-                        formatted_texts.push(`<div class="alert-item ${severity.toLowerCase()}-alert">${alertstart} - ${alertexpires} &nbsp &nbsp<b>${headline}</b><br>${description}</div>`);
-                    }
-                });
+            let formatted_texts = [];
+            let currentTime = new Date(); // Current time
+
+            alerts.forEach(alert => {
+                let event = alert.properties.event;
+                let severity = alert.properties.severity;
+                let description = alert.properties.description;
+                let alertstart = formatDateTime(alert.properties.onset,"time").toLowerCase();
+                let alertexpires = formatDateTime(alert.properties.expires,"time").toLowerCase();
+                let alertexpiresDate = new Date(alert.properties.expires); // Convert to Date object for comparison
+                let headline = alert.properties.parameters.NWSheadline[0];
+                
+                // Check if the alert is still active
+                if (alertexpiresDate > currentTime) {
+                    formatted_texts.push(`<div class="alert-item ${severity.toLowerCase()}-alert">${alertstart} - ${alertexpires} &nbsp &nbsp<b>${headline}</b><br>${description}</div>`);
+                    alert.isActive = true;
+                } else {
+                    alert.isActive = false;
+                }
+            });
 
             popAlert(formatted_texts);
-            cachedAlerts = alerts; // Update the cache with new alerts
-        }
-        });  
+            toggleAlertMode(alerts)
+        }  
     }
 
-    function mockAlertsFromNOAA(){
-        let currentTime = new Date(); // Current time
-        // For some reason the date times it's trying to drum up isn't working in the display string, but it seems to be comparing just fine.
-        // Mock data
-        let mockData = {
-            features: [
-                {
-                    properties: {
-                        event: "Flood Warning",
-                        severity: "Moderate",
-                        description: "River levels are rising due to recent heavy rain. Avoid flooded areas.",
-                        NWSheadline: ["Rising river levels expected!"],
-                        onset: new Date(currentTime.getTime() - 1*60*60*1000).toISOString(), // started 1 hour ago
-                        expires: new Date(currentTime.getTime() + 2*60*60*1000).toISOString() // expires 2 hours from now
-                    }
-                },
-                {
-                    properties: {
-                        event: "Heat Advisory",
-                        severity: "Extreme",
-                        description: "Temperatures are expected to exceed 100F. Stay hydrated and avoid direct sunlight.",
-                        NWSheadline: ["Extreme heat advisory!"],
-                        onset: new Date(currentTime.getTime() - 3*60*60*1000).toISOString(), // started 3 hours ago
-                        expires: new Date(currentTime.getTime() - 1*60*60*1000).toISOString() // expired 1 hour ago
-                    }
-                },
-                {
-                    properties: {
-                        event: "Severe Thunderstorm",
-                        severity: "Severe",
-                        description: "Thunderstorms with potential hail are expected. Take shelter and avoid driving.",
-                        NWSheadline: ["Severe weather warning!"],
-                        onset: new Date(currentTime.getTime() - 0.5*60*60*1000).toISOString(), // started 30 minutes ago
-                        expires: new Date(currentTime.getTime() + 4*60*60*1000).toISOString() // expires 4 hours from now
-                    }
-                }
-            ]
-        };
-
-        let alerts = mockData.features;
-        let formatted_texts = [];
-
-        alerts.forEach(alert => {
-            let event = alert.properties.event;
-            let severity = alert.properties.severity;
-            let description = alert.properties.description;
-            let headline = alert.properties.NWSheadline[0];
-            let alertstart = formatDateTime(alert.properties.onset,"time");
-            let alertexpires = formatDateTime(alert.properties.expires, "time");
-            let alertexpiresDate = new Date(alert.properties.expires);
-            
-
-            // Check if the alert is still active
-            if (alertexpiresDate > currentTime) {
-                formatted_texts.push(`<div class="alert-item ${severity.toLowerCase()}-alert">${alertstart} - ${alertexpires} &nbsp &nbsp<b>${headline}</b><br>${description}</div>`);
-            }
-        });
-
-        popAlert(formatted_texts);
-    }
+    setInterval(alertsFromNOAA, 30 * 1000); // Refresh data every 30 seconds
 
     function popAlert(texts) {
+        console.log("Populating Alerts")
         // Get a reference to the alerts div
         let alertsDiv = document.querySelector('.alerts');
         alertsDiv.innerHTML = texts.join(""); // Add all the alerts to the div
@@ -211,7 +178,6 @@
 
         if (!alerts.length) {
             alertsDiv.style.display = 'none';
-            return; // If there are no alerts, exit
         } else {
             alertsDiv.style.display = 'block';
             // Display the first alert
@@ -226,48 +192,37 @@
         }
     }
 
-    function alertsFromOWM(alertData) {    
-        /*
-        "{sender_name=NWS Wilmington (Southwestern Ohio), 
-        description=...DENSE FOG IS POSSIBLE EARLY THIS MORNING...
-    Areas of fog have developed early this morning. Some of the fog
-    could be locally dense in spots.
-    Be prepared for low visibilities and use extra caution when
-    driving., 
-    tags=[Ljava.lang.Object;@5be7ef92, end=1.6946964E9, event=Special Weather Statement, start=1.6946835E9}"
+    function toggleAlertMode(alerts) {
+        let radar_lg = document.getElementById('radar-lg')
+        let slideshow = document.getElementById('slideshow')
+        let radar_sm = document.getElementById('radar-sm-container');
 
-        */
+        let alertModeOn = false;
 
-        if (testing = 1) {
-            sender_name = `NWS Wilmington (Southwestern Ohio)`;
-            description=`...DENSE FOG IS POSSIBLE EARLY THIS MORNING...
-    Areas of fog have developed early this morning. Some of the fog
-    could be locally dense in spots.
-    Be prepared for low visibilities and use extra caution when
-    driving.`;
-
-
+        if(alerts.find((alert) => (alert.properties.severity === "Severe" || alert.properties.severity === "Extreme") && alert.isActive == true)) {
+            alertModeOn = true;
         }
-
-        if (alertData) {
-            let readableAlert = `From ${alertData[0].sender_name}: ${alertData[0].event} - ${alertData[0].description.replace(/\n/g, ' ')} Start Time: ${new Date(alertData[0].start * 1000).toLocaleString()} End Time: ${new Date(alertData[0].end * 1000).toLocaleString()}`;
-        }
-
-        // For testing
-        readableAlert = `From NWS Wilmington (Southwestern Ohio): Special Weather Statement - ...DENSE FOG IS POSSIBLE EARLY THIS MORNING... Areas of fog have developed early this morning. Some of the fog could be locally dense in spots. Be prepared for low visibilities and use extra caution when driving. Start Time: 9/14/2023, 5:25:00 AM End Time: 9/14/2023, 9:00:00 AM`
-
-        // Get a reference to the alerts div
-        let alertsDiv = document.querySelector('.alerts');
-        // let alertsDiv = document.getElementsByClassName('alerts')[0];
-
-        // Update the innerText property of the alerts div with the readableAlert message
-        alertsDiv.innerText = readableAlert || testAlert || "No alerts as this time.";
         
-    }
-    if (testing == 0) {
-        setInterval(alertsFromNOAA, 30 * 1000); // Updates every 30 seconds
+        if (alertModeOn == true) {
+            
+            radar_lg.style.display = 'block';
+            slideshow.style.display = 'none';
+            radar_sm.style.display = 'none'
+            radar_sm.setAttribute("data-interval", "0");
+            radar_sm.setAttribute("include", "false");
+            
+        } else {
+
+            radar_lg.style.display = 'none';
+            slideshow.style.display = 'block';
+            radar_sm.style.display = 'block'
+            radar_sm.setAttribute("data-interval", "15000");
+            radar_sm.setAttribute("include", "true");
+
+        }
     }
 
+    
 
 // Fetch Weather Data
     async function getCurrentWxData() {
@@ -297,448 +252,427 @@
 
     setInterval(getCurrentWxData, CONFIG.wxRefreshRate * 60 * 1000); // Based on the user settings above.
 
-// Get API data from URL
-    // OLD - Get API data from URL // Replaced with retry attempts version, but it's still new.
-        // async function fetchData(apiURL) {
-        //     let resJSON;
-        //     console.log("Fetching data from " + apiURL)
-        //     try {
-        //         const response = await fetch(apiURL);
-        //         if (!response.ok) {
-        //             throw new Error(`HTTP error! Status: ${response.status}`);
-        //         }
-                
-        //         resJSON = await response.json();
+        // Get API data from URL with retries
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
 
-        //     } catch (error) {
-        //         console.error('Error fetching data:', error);
-        //     }
+            async function fetchData(apiURL, attempts = 3) {
+                let resJSON;
+                console.log("Fetching data from " + apiURL);
 
-        //     return resJSON;
-        // }
-
-    // Get API data from URL with retries
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        async function fetchData(apiURL, attempts = 3) {
-            let resJSON;
-            console.log("Fetching data from " + apiURL);
-
-            for (let i = 0; i < attempts; i++) {
-                try {
-                    const response = await fetch(apiURL);
-                    if (!response.ok) {
-                        if (response.status = 401) {
-                            console.log(`Probable API token error`)
+                for (let i = 0; i < attempts; i++) {
+                    try {
+                        const response = await fetch(apiURL);
+                        if (!response.ok) {
+                            if (response.status == 401) {
+                                console.log(`Probable API token error`)
+                            } else {
+                                throw new Error(`HTTP error! Status: ${response.status}`);
+                            }                        
                             return null
-                        } else {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
-                        }                        
-                    }
+                        }
 
-                    resJSON = await response.json();
-                    return resJSON; // If the response is okay, return the result immediately
+                        resJSON = await response.json();
+                        return resJSON; // If the response is okay, return the result immediately
 
-                } catch (error) {
-                    console.warn('Attempt', i + 1, 'Error fetching data:', error);
+                    } catch (error) {
+                        console.warn('Attempt', i + 1, 'Error fetching data:', error);
 
-                    // If it's not the last attempt, sleep for 2 seconds before retrying
-                    if (i < attempts - 1) {
-                        console.log('Retrying in 2 seconds...');
-                        await sleep(2000);
+                        // If it's not the last attempt, sleep for 2 seconds before retrying
+                        if (i < attempts - 1) {
+                            console.log('Retrying in 2 seconds...');
+                            await sleep(2000);
+                        }
                     }
                 }
+
+                console.error('Failed after', attempts, 'attempts.');
+                return null;
             }
 
-            console.error('Failed after', attempts, 'attempts.');
-            return null;
-        }
-
-// Current Conditions
-    function getCurrentConditions(nws, owm) {
-        console.log("Refreshed at: " + formatDateTime(new Date(),"ts"))
-        // Icon
-            //Handled at Hourly; current just hasn't been reliable
-
-        // Temperature
-            processWeatherData(
-                nwsValue = nws.properties.temperature.value, 
-                owmValue = owm ? owm["current"]["temp"] : null, 
-                nws_xform = xCtoF, 
-                owm_xform = null,
-                precision = 0,
-                units = "°F", 
-                elementId = 'current_temperature',
-                priority = "owm"
-            );
-
-        // Description
-            // Handled by Hourly
-
-        // Updated At
-        processWeatherData(
-                nwsValue = formatDateTime(nws.properties.timestamp,"time"), 
-                owmValue = owm ? formatDateTime(new Date(),"time") : null, 
-                nws_xform = null, 
-                owm_xform = null,
-                precision = null,
-                units = "", 
-                elementId = 'last_updated',
-                priority = "owm"
-            );
-
-
-        // Feels Like
-            // console.log("NWS WindChill: " + xCtoF(nws.properties.windChill.value))
-            // console.log("NWS HeatIndex: " + xCtoF(nws.properties.heatIndex.value))
-            // console.log("OWM FeelsLike: " + owm["current"]["feels_like"])
-            processWeatherData(
-                nwsValue = 
-                    nws.properties.windChill.value ? nws.properties.windChill.value :
-                    nws.properties.heatIndex.value ? nws.properties.heatIndex.value :
-                    nws.properties.temperature.value ? nws.properties.temperature.value :
-                    null, 
-                owmValue = owm ? owm["current"]["feels_like"] : owm ? owm["current"]["temp"] : null, 
-                nws_xform = xCtoF, 
-                owm_xform = null,
-                precision = 0,
-                units = "°F", 
-                elementId = 'current_feels',
-                priority = "owm"
-            );
-
-        // Humidity
-            processWeatherData(
-                nwsValue = nws.properties.relativeHumidity.value, 
-                owmValue = owm ? owm["current"]["humidity"] : null, 
-                nws_xform = null, 
-                owm_xform = null,
-                precision = 0,
-                units = "%", 
-                elementId = 'current_humidity',
-                priority = "owm"
-            );
-
-        // Clouds
-            document.getElementById('current_clouds').innerHTML = owm ? owm["current"]["clouds"]+"%" : "n/a";
-
-        // UV Index
-            // document.getElementById('current_uvi').innerHTML = uviLevels(owm["current"]["uvi"]);
-            updateUviDisplay(owm ? owm["current"]["uvi"] : "n/a");
-            console.log("UVI: " + (owm ? owm["current"]["uvi"] : "n/a"))
-
-        // Visibility
-            processWeatherData(
-                nwsValue = nws.properties.visibility.value, 
-                owmValue = owm ? owm["current"]["visibility"] : null, 
-                nws_xform = xMtoMi, 
-                owm_xform = xKMtoMi,
-                precision = 2,
-                units = " mi.", 
-                elementId = 'current_visibility'
-            );
-
-        // Wind Speed
-            processWeatherData(
-                nwsValue = nws.properties.windSpeed.value, 
-                owmValue = owm ? owm["current"]["wind_speed"] : null, 
-                nws_xform = xKMtoMi, 
-                owm_xform = null,
-                precision = 0,
-                units = "", 
-                elementId = 'current_wind_speed'
-            );
-
-        // Wind Gust
-            processWeatherData(
-                nwsValue = nws.properties.windGust.value, 
-                owmValue = owm ? owm["current"]["wind_gust"] : null, 
-                nws_xform = xKMtoMi, 
-                owm_xform = null,
-                precision = 0,
-                units = " mph", 
-                elementId = 'current_wind_gust'
-            );
-
-        // Wind Direction
-            let value;
-
-            // Log the raw wind direction values from each source for debugging purposes
-            console.log("NWS Wind Dir: " + nws.properties.windDirection.value);
-            console.log("OWM Wind Dir: " + (owm ? owm["current"]["wind_deg"] : "n/a"));
-
-            // Determine the wind direction value source (NWS or OWM)
-            value = nws.properties.windDirection.value !== null ? nws.properties.windDirection.value : owm["current"]["wind_deg"], null;
-
-            if (value !== null) {
-                // Convert the degree value to its cardinal direction representation
-                let card = xDegtoCard(value);
-
-                // Adjust the wind direction to the CSS rotation system.
-                // In the system's convention, 0° points to the right and rotates counter-clockwise.
-                // The CSS rotation system starts from the top, so we adjust for this difference.
-                let cssRotation = 90 - value;
-                if (cssRotation < 0) { cssRotation += 360; }
-
-                // Update the page with the calculated values
-                document.getElementById("card").innerHTML = card;
-                document.querySelector('.rotate').style.transform = `rotate(${cssRotation}deg)`;
-            }
-
-            // Log the final degree value used for debugging purposes
-            console.log("Wind Deg: " + value);
-
-
-        // Rain
-        // Rain 1hr
-            // NWS makes no distinction on rain and snow. Just precipitation. Very annoying.
-        // Snow
-        // Snow 1hr
-        // Condition ID
-        // Main
-        
-        // Icon
-        // Image
-        // Image URL
-    }
-
-// Hourly
-    function getHourlyForecast(nws, owm) {
-        console.log("Loading Current Data")
+    // Current Conditions
+        function getCurrentConditions(nws, owm) {
+            console.log("Refreshed at: " + formatDateTime(new Date(),"dts"))
             // Icon
-                if (nws.properties !== null) {
-                    let icon = nws.properties.periods[0].icon.replace("small","large").replace("medium","large").replace(",0","")
-                    console.log("  Icon: " + icon)
+                //Handled at Hourly; current just hasn't been reliable
 
-                    document.getElementById("weather-icon").src = icon;
-                }
+            // Temperature
+                processWeatherData(
+                    nwsValue = nws.properties.temperature.value, 
+                    owmValue = owm ? owm["current"]["temp"] : null, 
+                    nws_xform = xCtoF, 
+                    owm_xform = null,
+                    precision = 0,
+                    units = "°F", 
+                    elementId = 'current_temperature',
+                    priority = "owm"
+                );
 
             // Description
-                console.log("  Desc: " + nws.properties.periods[0].shortForecast)
+                // Handled by Hourly
 
+            // Updated At
+            processWeatherData(
+                    nwsValue = formatDateTime(nws.properties.timestamp,"tss"), 
+                    owmValue = owm ? formatDateTime(new Date(),"tss") : null, 
+                    nws_xform = null, 
+                    owm_xform = null,
+                    precision = null,
+                    units = "", 
+                    elementId = 'last_updated',
+                    priority = "owm"
+                );
+
+
+            // Feels Like
+                // console.log("NWS WindChill: " + xCtoF(nws.properties.windChill.value))
+                // console.log("NWS HeatIndex: " + xCtoF(nws.properties.heatIndex.value))
+                // console.log("OWM FeelsLike: " + owm["current"]["feels_like"])
                 processWeatherData(
-                    nwsValue = nws.properties.periods[0].shortForecast, 
-                    owmValue = owm ? owm["current"]["weather"][0]["Main"] : "n/a", 
-                    nws_xform = null, 
+                    nwsValue = 
+                        nws.properties.windChill.value ? nws.properties.windChill.value :
+                        nws.properties.heatIndex.value ? nws.properties.heatIndex.value :
+                        nws.properties.temperature.value ? nws.properties.temperature.value :
+                        null, 
+                    owmValue = owm ? owm["current"]["feels_like"] : owm ? owm["current"]["temp"] : null, 
+                    nws_xform = xCtoF, 
                     owm_xform = null,
-                    precision = null,
-                    units = "", 
-                    elementId = 'current_description'
-                );
-        console.log("Loading Hourly Data")
-            let i;
-            
-            // Probabilty of Precipitation is shown on the icon
-            console.log("  Icon")
-                for (i = 1; i < 9; i+=1) {
-                    // console.log(i)
-                    icon = nws.properties.periods[(i)].icon.replace("medium","small").replace("large","small").replace(",0","")
-                    document.getElementById('h' + i + '_icon').src = icon;
-                }
-            
-            console.log("  Hour")
-                let d;
-                for (i = 1; i < 9; i+=1) {
-                    d = new Date(new Date().getTime() + ((60 * 60 * 1000) * i));
-                    processWeatherData(
-                        nwsValue = formatDateTime(nws.properties.periods[i].startTime,"time"),
-                        owmValue = owm ? formatDateTime(d,"time") : "n/a",
-                        nws_xform = null, 
-                        owm_xform = null,
-                        precision = null,
-                        units = "", 
-                        elementId = 'h' + i + '_hr'
-                    );
-                }
-
-            console.log("  Desc")
-                for (i = 1; i < 9; i+=1) {
-                    processWeatherData(
-                        nwsValue = nws.properties.periods[i].shortForecast,
-                        owmValue = owm ? owm["hourly"][i]["weather"][0]["main"] : "n/a",
-                        nws_xform = null, 
-                        owm_xform = null,
-                        precision = null,
-                        units = "", 
-                        elementId = 'h' + i + '_desc'
-                    );
-                }
-            
-            console.log("  Temp")
-                for (i = 1; i < 9; i+=1) {
-                    processWeatherData(
-                        nwsValue = nws.properties.periods[i].temperature, // Already in °F
-                        owmValue = owm ? owm["hourly"][i]["temp"]["max"] : "n/a",
-                        nws_xform = null, 
-                        owm_xform = null,
-                        precision = 0,
-                        units = "", 
-                        elementId = 'h' + i + '_temp'
-                    );
-                }
-
-            
-            
-    }
-
-// Daily
-    function getDailyForecast(nws, owm) {
-        console.log("Today's High: " + nws.properties.periods[0].temperature)    
-        // Today's
-            // Hi Temp
-                day0_high_temp = processWeatherData(
-                    nwsValue = nws.properties.periods[0].temperature, // Already in °F unlike the current
-                    owmValue = owm ? owm["daily"][0]["temp"]["max"] : null, 
-                    nws_xform = null, 
-                    owm_xform = null,
-                    precision = null,
+                    precision = 0,
                     units = "°F", 
-                    elementId = 'day0_temp_max'
+                    elementId = 'current_feels',
+                    priority = "owm"
                 );
-            // Lo Temp
-                day0_low_temp = processWeatherData(
-                    nwsValue = nws.properties.periods[1].temperature, // Already in °F unlike the current
-                    owmValue = owm ? owm["daily"][0]["temp"]["min"] : null, 
+
+            // Humidity
+                processWeatherData(
+                    nwsValue = nws.properties.relativeHumidity.value, 
+                    owmValue = owm ? owm["current"]["humidity"] : null, 
                     nws_xform = null, 
                     owm_xform = null,
-                    precision = null,
-                    units = "°F", 
-                    elementId = 'day0_temp_min'
+                    precision = 0,
+                    units = "%", 
+                    elementId = 'current_humidity',
+                    priority = "owm"
                 );
-            // Current Outlook
-                current_outlook_timing = processWeatherData(
-                    nwsValue = nws.properties.periods[0].name,
-                    owmValue = owm ? "Today" : "n/a", 
-                    nws_xform = null, 
+
+            // Clouds
+                document.getElementById('current_clouds').innerHTML = owm ? owm["current"]["clouds"]+"%" : "n/a";
+
+            // UV Index
+                // document.getElementById('current_uvi').innerHTML = uviLevels(owm["current"]["uvi"]);
+                updateUviDisplay(owm ? owm["current"]["uvi"] : "n/a");
+                console.log("UVI: " + (owm ? owm["current"]["uvi"] : "n/a"))
+
+            // Visibility
+                processWeatherData(
+                    nwsValue = nws.properties.visibility.value, 
+                    owmValue = owm ? owm["current"]["visibility"] : null, 
+                    nws_xform = xMtoMi, 
+                    owm_xform = xKMtoMi,
+                    precision = 2,
+                    units = " mi.", 
+                    elementId = 'current_visibility'
+                );
+
+            // Wind Speed
+                processWeatherData(
+                    nwsValue = nws.properties.windSpeed.value, 
+                    owmValue = owm ? owm["current"]["wind_speed"] : null, 
+                    nws_xform = xKMtoMi, 
                     owm_xform = null,
-                    precision = null,
+                    precision = 0,
                     units = "", 
-                    elementId = 'current_outlook_timing'
+                    elementId = 'current_wind_speed'
                 );
 
-                current_outlook_desc = processWeatherData(
-                    nwsValue = nws.properties.periods[0].detailedForecast.replace('.','.<br>'),
-                    owmValue = owm ? owm["daily"][0]["summary"] : "n/a", 
-                    nws_xform = null, 
+            // Wind Gust
+                processWeatherData(
+                    nwsValue = nws.properties.windGust.value, 
+                    owmValue = owm ? owm["current"]["wind_gust"] : null, 
+                    nws_xform = xKMtoMi, 
                     owm_xform = null,
-                    precision = null,
-                    units = "", 
-                    elementId = 'current_outlook_desc'
+                    precision = 0,
+                    units = " mph", 
+                    elementId = 'current_wind_gust'
                 );
 
+            // Wind Direction
+                let value;
 
-            // Sunrise
-                document.getElementById("day0_sunrise").innerHTML = owm ? formatDateTime(owm["daily"][0]["sunrise"]*1000,"time") : "n/a";
-            // Sunset
-                document.getElementById("day0_sunset").innerHTML = owm ? formatDateTime(owm["daily"][0]["sunset"]*1000,"time") : "n/a";
-            // Moonrise
-            // Moonset
-            // Moon Phase
-                document.getElementById("day0_moon_phase").innerHTML = owm ? getMoonPhaseTextWithEmoji(owm["daily"][0]["moon_phase"]) : "n/a";
+                // Log the raw wind direction values from each source for debugging purposes
+                console.log("NWS Wind Dir: " + nws.properties.windDirection.value);
+                console.log("OWM Wind Dir: " + (owm ? owm["current"]["wind_deg"] : "n/a"));
 
-        console.log("Loading Daily Outlook")
-            let i;
-            let icon;
-            
-            
-            // Probabilty of Precipitation is shown on the icon
-            console.log("  Icon")
-                for (i = 2; i < 12; i+=2) {
-                    //console.log(i)
-                    icon = nws.properties.periods[(i)].icon.replace("medium","small").replace("large","small").replace(",0","")
-                    document.getElementById('d' + (i/2) + '_icon').src = icon;
+                // Determine the wind direction value source (NWS or OWM)
+                value = nws.properties.windDirection.value !== null ? nws.properties.windDirection.value : owm["current"]["wind_deg"], null;
+
+                if (value !== null) {
+                    // Convert the degree value to its cardinal direction representation
+                    let card = xDegtoCard(value);
+
+                    // Adjust the wind direction to the CSS rotation system.
+                    // In the system's convention, 0° points to the right and rotates counter-clockwise.
+                    // The CSS rotation system starts from the top, so we adjust for this difference.
+                    let cssRotation = 90 - value;
+                    if (cssRotation < 0) { cssRotation += 360; }
+
+                    // Update the page with the calculated values
+                    document.getElementById("card").innerHTML = card;
+                    document.querySelector('.rotate').style.transform = `rotate(${cssRotation}deg)`;
                 }
+
+                // Log the final degree value used for debugging purposes
+                console.log("Wind Deg: " + value);
+
+
+            // Rain
+            // Rain 1hr
+                // NWS makes no distinction on rain and snow. Just precipitation. Very annoying.
+            // Snow
+            // Snow 1hr
+            // Condition ID
+            // Main
             
-            console.log("  DOW")
-                let d;
-                for (i = 2; i < 12; i+=2) {
-                    d = new Date(new Date().getTime() + ((24 * 60 * 60 * 1000) * (i/2)));
-                    // console.log(formatDateTime(d,"dow"))
-                    // console.log(formatDateTime(nws.properties.periods[i].startTime,"dow"))
+            // Icon
+            // Image
+            // Image URL
+        }
+
+    // Hourly
+        function getHourlyForecast(nws, owm) {
+            console.log("Loading Current Data")
+                // Icon
+                    if (nws.properties !== null) {
+                        let icon = nws.properties.periods[0].icon.replace("small","large").replace("medium","large").replace(",0","")
+                        console.log("  Icon: " + icon)
+
+                        document.getElementById("weather-icon").src = icon;
+                    }
+
+                // Description
+                    console.log("OWM Desc: " + owm["current"]["weather"][0]["main"])
                     processWeatherData(
-                        nwsValue = formatDateTime(nws.properties.periods[i].startTime,"dow"),
-                        owmValue = owm ? formatDateTime(d,"dow") : "n/a",
+                        nwsValue = nws.properties.periods[0].shortForecast, 
+                        owmValue = owm ? owm["current"]["weather"][0]["main"] : "n/a", 
                         nws_xform = null, 
                         owm_xform = null,
                         precision = null,
                         units = "", 
-                        elementId = 'd' + i/2 + '_dow'
+                        elementId = 'current_description',
+                        priority = 'owm'
                     );
-                }
+            console.log("Loading Hourly Data")
+                let i;
+                
+                // Probabilty of Precipitation is shown on the icon
+                console.log("  Icon")
+                    for (i = 1; i < 9; i+=1) {
+                        // console.log(i)
+                        icon = nws.properties.periods[(i)].icon.replace("medium","small").replace("large","small").replace(",0","")
+                        document.getElementById('h' + i + '_icon').src = icon;
+                    }
+                
+                console.log("  Hour")
+                    let d;
+                    for (i = 1; i < 9; i+=1) {
+                        d = new Date(new Date().getTime() + ((60 * 60 * 1000) * i));
+                        processWeatherData(
+                            nwsValue = formatDateTime(nws.properties.periods[i].startTime,"time"),
+                            owmValue = owm ? formatDateTime(d,"time") : "n/a",
+                            nws_xform = null, 
+                            owm_xform = null,
+                            precision = null,
+                            units = "", 
+                            elementId = 'h' + i + '_hr'
+                        );
+                    }
 
-            console.log("  Desc")
-                for (i = 2; i < 12; i+=2) {
-                    //console.log(owm["daily"][i/2]["weather"][0]["main"])
-                    processWeatherData(
-                        nwsValue = nws.properties.periods[i].shortForecast,
-                        owmValue = owm ? owm["daily"][i/2]["weather"][0]["main"] : "n/a",
+                console.log("  Desc")
+                    for (i = 1; i < 9; i+=1) {
+                        processWeatherData(
+                            nwsValue = nws.properties.periods[i].shortForecast,
+                            owmValue = owm ? owm["hourly"][i]["weather"][0]["main"] : "n/a",
+                            nws_xform = null, 
+                            owm_xform = null,
+                            precision = null,
+                            units = "", 
+                            elementId = 'h' + i + '_desc'
+                        );
+                    }
+                
+                console.log("  Temp")
+                    for (i = 1; i < 9; i+=1) {
+                        processWeatherData(
+                            nwsValue = nws.properties.periods[i].temperature, // Already in °F
+                            owmValue = owm ? owm["hourly"][i]["temp"]["max"] : "n/a",
+                            nws_xform = null, 
+                            owm_xform = null,
+                            precision = 0,
+                            units = "", 
+                            elementId = 'h' + i + '_temp'
+                        );
+                    }
+
+                
+                
+        }
+
+    // Daily
+        function getDailyForecast(nws, owm) {
+            console.log("Today's High: " + nws.properties.periods[0].temperature)    
+            // Today's
+                // Hi Temp
+                    day0_high_temp = processWeatherData(
+                        nwsValue = nws.properties.periods[0].temperature, // Already in °F unlike the current
+                        owmValue = owm ? owm["daily"][0]["temp"]["max"] : null, 
+                        nws_xform = null, 
+                        owm_xform = null,
+                        precision = null,
+                        units = "°F", 
+                        elementId = 'day0_temp_max'
+                    );
+                // Lo Temp
+                    day0_low_temp = processWeatherData(
+                        nwsValue = nws.properties.periods[1].temperature, // Already in °F unlike the current
+                        owmValue = owm ? owm["daily"][0]["temp"]["min"] : null, 
+                        nws_xform = null, 
+                        owm_xform = null,
+                        precision = null,
+                        units = "°F", 
+                        elementId = 'day0_temp_min'
+                    );
+                // Current Outlook
+                    current_outlook_timing = processWeatherData(
+                        nwsValue = nws.properties.periods[0].name,
+                        owmValue = owm ? "Today" : "n/a", 
                         nws_xform = null, 
                         owm_xform = null,
                         precision = null,
                         units = "", 
-                        elementId = 'd' + (i/2) + '_desc'
+                        elementId = 'current_outlook_timing'
                     );
-                }
-            
-            console.log("  Hi Temp")
-                for (i = 2; i < 12; i+=2) {
-                    processWeatherData(
-                        nwsValue = nws.properties.periods[i].temperature, // Already in °F
-                        owmValue = owm ? owm["daily"][i/2]["temp"]["max"] : "n/a",
-                        nws_xform = null, 
-                        owm_xform = null,
-                        precision = 0,
-                        units = "", 
-                        elementId = 'd' + (i/2) + '_hi'
-                    );
-                }
-             
-            console.log("  Lo Temp")
-                for (i = 3; i < 12; i+=2) {
-                    processWeatherData(
-                        nwsValue = nws.properties.periods[i].temperature, // Already in °F
-                        owmValue = owm ? owm["daily"][(i-1)/2]["temp"]["min"] : "n/a",
-                        nws_xform = null, 
-                        owm_xform = null,
-                        precision = 0,
-                        units = "", 
-                        elementId = 'd' + ((i-1)/2) + '_lo'
-                    );
-                }
-            
-            
 
-            console.log("  Name")
-                for (i = 2; i < 12; i++) {
-                    processWeatherData(
-                        nwsValue = nws.properties.periods[i].name,
-                        owmValue = "", 
+                    current_outlook_desc = processWeatherData(
+                        nwsValue = nws.properties.periods[0].detailedForecast.replace('.','.<br>'),
+                        owmValue = owm ? owm["daily"][0]["summary"] : "n/a", 
                         nws_xform = null, 
                         owm_xform = null,
                         precision = null,
                         units = "", 
-                        elementId = 'p' + i + '_name'
+                        elementId = 'current_outlook_desc'
                     );
-                }
 
-            console.log("  Description")
-                for (i = 2; i < 12; i++) {
-                    processWeatherData(
-                        nwsValue = nws.properties.periods[i].detailedForecast,
-                        owmValue = "", 
-                        nws_xform = null, 
-                        owm_xform = null,
-                        precision = null,
-                        units = "", 
-                        elementId = 'p' + i + '_desc'
-                    );
-                }
 
-    }
+                // Sunrise
+                    document.getElementById("day0_sunrise").innerHTML = owm ? formatDateTime(owm["daily"][0]["sunrise"]*1000,"time") : "n/a";
+                // Sunset
+                    document.getElementById("day0_sunset").innerHTML = owm ? formatDateTime(owm["daily"][0]["sunset"]*1000,"time") : "n/a";
+                // Moonrise
+                // Moonset
+                // Moon Phase
+                    document.getElementById("day0_moon_phase").innerHTML = owm ? getMoonPhaseTextWithEmoji(owm["daily"][0]["moon_phase"]) : "n/a";
 
-// Process Weather Data
+            console.log("Loading Daily Outlook")
+                let i;
+                let icon;
+                
+                
+                // Probabilty of Precipitation is shown on the icon
+                console.log("  Icon")
+                    for (i = 2; i < 12; i+=2) {
+                        //console.log(i)
+                        icon = nws.properties.periods[(i)].icon.replace("medium","small").replace("large","small").replace(",0","")
+                        document.getElementById('d' + (i/2) + '_icon').src = icon;
+                    }
+                
+                console.log("  DOW")
+                    let d;
+                    for (i = 2; i < 12; i+=2) {
+                        d = new Date(new Date().getTime() + ((24 * 60 * 60 * 1000) * (i/2)));
+
+                        processWeatherData(
+                            nwsValue = formatDateTime(nws.properties.periods[i].startTime,"dow"),
+                            owmValue = owm ? formatDateTime(d,"dow") : "n/a",
+                            nws_xform = null, 
+                            owm_xform = null,
+                            precision = null,
+                            units = "", 
+                            elementId = 'd' + i/2 + '_dow'
+                        );
+                    }
+
+                console.log("  Desc")
+                    for (i = 2; i < 12; i+=2) {
+                        //console.log(owm["daily"][i/2]["weather"][0]["main"])
+                        processWeatherData(
+                            nwsValue = nws.properties.periods[i].shortForecast,
+                            owmValue = owm ? owm["daily"][i/2]["weather"][0]["main"] : "n/a",
+                            nws_xform = null, 
+                            owm_xform = null,
+                            precision = null,
+                            units = "", 
+                            elementId = 'd' + (i/2) + '_desc'
+                        );
+                    }
+                
+                console.log("  Hi Temp")
+                    for (i = 2; i < 12; i+=2) {
+                        processWeatherData(
+                            nwsValue = nws.properties.periods[i].temperature, // Already in °F
+                            owmValue = owm ? owm["daily"][i/2]["temp"]["max"] : "n/a",
+                            nws_xform = null, 
+                            owm_xform = null,
+                            precision = 0,
+                            units = "", 
+                            elementId = 'd' + (i/2) + '_hi'
+                        );
+                    }
+                 
+                console.log("  Lo Temp")
+                    for (i = 3; i < 12; i+=2) {
+                        processWeatherData(
+                            nwsValue = nws.properties.periods[i].temperature, // Already in °F
+                            owmValue = owm ? owm["daily"][(i-1)/2]["temp"]["min"] : "n/a",
+                            nws_xform = null, 
+                            owm_xform = null,
+                            precision = 0,
+                            units = "", 
+                            elementId = 'd' + ((i-1)/2) + '_lo'
+                        );
+                    }
+                
+                
+
+                console.log("  Name")
+                    for (i = 2; i < 12; i++) {
+                        processWeatherData(
+                            nwsValue = nws.properties.periods[i].name,
+                            owmValue = "", 
+                            nws_xform = null, 
+                            owm_xform = null,
+                            precision = null,
+                            units = "", 
+                            elementId = 'p' + i + '_name'
+                        );
+                    }
+
+                console.log("  Description")
+                    for (i = 2; i < 12; i++) {
+                        processWeatherData(
+                            nwsValue = nws.properties.periods[i].detailedForecast,
+                            owmValue = "", 
+                            nws_xform = null, 
+                            owm_xform = null,
+                            precision = null,
+                            units = "", 
+                            elementId = 'p' + i + '_desc'
+                        );
+                    }
+
+        }
+
+    // Process Weather Data
     function processWeatherData(nwsValue, owmValue, nws_xform, owm_xform, precision, units, elementId, priority = "nws") {
         let value;
         if (nwsValue !== null && priority == "nws") {
@@ -761,35 +695,8 @@
 
 
 // Carousel Controls
-    // Old Radar-Details
-        // Rotating between Radar and weather details
-            // let carouselItems = document.querySelectorAll('.carousel-item');
-            // let currentCarouselIndex = 0;
-            // let displayDurations = [10000, 20000]; // in milliseconds
 
-            // function cycleCarousel() {
-            //     carouselItems[currentCarouselIndex].style.display = 'none';
-
-            //     // Move to next item (or wrap around to the beginning)
-            //     currentCarouselIndex = (currentCarouselIndex + 1) % carouselItems.length;
-
-            //     // Show next item
-            //     carouselItems[currentCarouselIndex].style.display = 'block';
-                
-            //     // Use the current item's duration from the displayDurations array
-            //     setTimeout(cycleCarousel, displayDurations[currentCarouselIndex]);
-
-            //     if (currentCarouselIndex == 1) {
-            //         mymap.invalidateSize();
-            //     }
-            // }
-
-            // // Start the carousel when the document is loaded
-            // document.addEventListener('DOMContentLoaded', cycleCarousel);
-            // setInterval(cycleCarousel, 60 * 1000); // re-cycle every minute
-
-
-    // NEW Radar carousel
+    // Radar carousel
         let rd_index = 0;
         let rd_items = document.querySelectorAll('.radar-details-item');
 
@@ -800,7 +707,9 @@
             });
 
             // Show the current item
-            rd_items[rd_index].style.display = 'block';
+            if (rd_items[rd_index].getAttribute('include') == "true") {
+                rd_items[rd_index].style.display = 'block';
+            }
 
             // Get the display interval for the current item
             let interval = parseInt(rd_items[rd_index].getAttribute('data-interval'), 10);
@@ -811,11 +720,7 @@
             // Set timeout for the next item based on the current item's interval
             setTimeout(initRadarDetailsCarousel, interval);
 
-
-
         }
-
-
 
 
     // Outlook Carousel
@@ -831,9 +736,6 @@
 
             let carousel = document.getElementById("outlook-cards-carousel");
 
-            // carousel.classList.remove("fade-out");
-            // carousel.classList.add("fade-in");
-
             // Set an interval to cycle through outlook_items
             setInterval(() => {
                 outlook_items[index].style.display = 'none';
@@ -846,8 +748,7 @@
         }
 
 
-
-    // Daily Details
+    // Daily Details Carousel
         
         function initDailiesCarousel() {
             let index = 0;
@@ -866,10 +767,11 @@
             }, 8 * 1000); // Change item every x seconds. Adjust as needed.
         }
 
-// Start the carousels
-initRadarDetailsCarousel();
-initOutlookCarousel();
-initDailiesCarousel();
+
+    // Start the carousels
+        initRadarDetailsCarousel();
+        initOutlookCarousel();
+        initDailiesCarousel();
 
         
 // Conversions
@@ -920,6 +822,7 @@ initDailiesCarousel();
         //return formatDateTime(newtimecode)
         return newtimecode
     }
+
 
 // Data Display functions
     function getMoonPhaseTextWithEmoji(moonPhase) {
@@ -1020,6 +923,7 @@ initDailiesCarousel();
 
         uviValue.innerHTML = uvi;
     }
+
 
 // Bringing in sensitive variables from config file.
     function getVariables() {
