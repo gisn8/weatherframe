@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Questrial&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="config.js"></script>
+    <script src="mockdata.js"></script>
     <script src="script.js" defer></script>
 
     <!-- Below taken from https://www.eldoradoweather.com/current/misc/maproom/leaflet/leaflet.php -->
@@ -54,9 +55,10 @@
 <body>
     <div class="container">
         <div class="top-section-container">
-            <!-- Slideshow container -->
-            <iframe class="slideshow" id="slideshow" src="" frameborder="0"></iframe>
-            
+            <div class="slideshow-container">
+                <iframe class="slideshow" id="slideshow" src="" frameborder="0"></iframe>
+                <iframe id="radar-lg"src="" frameborder="0"></iframe>
+            </div>
             <!-- Current Weather and Radar -->
             <div class="side-panel-container">
 
@@ -77,20 +79,20 @@
                                 </div>
                                 <div class="column"></div><!-- spacer -->
                         </div>
-                        
-                        <div class="weather-description">
-                            <br>
-                            Currently:<br>
-                            <b><span id="current_description"></span></b><br>
-                            <br>
-                            <span id="current_outlook_timing"></span>:<br>
-                            <b><span style="display: inline-block; margin-left:25px; margin-right:25px;" id="current_outlook_desc"></span></b>
-                        </div>
                     </center>
                 </div>
 
                 <div class="radar-details-carousel">
-                    <div class="radar-details-item detailed-conditions" data-interval="2000">
+                    <div class="radar-details-item weather-description" data-interval="15000" include="true">
+                        <center>
+                        <b>Currently:</b><br>
+                        <span id="current_description"></span><br>
+                        <br>
+                        <b><span id="current_outlook_timing"></span>:</b><br>
+                        <span style="display: inline-block; margin-left:25px; margin-right:25px;" id="current_outlook_desc"></span>
+                        </center>
+                    </div>
+                    <div class="radar-details-item detailed-conditions" data-interval="10000" include="true">
                         <center>
                         <table>
                             <tr>
@@ -138,10 +140,10 @@
                         </table>
                         </center>
                     </div>
-                    <!-- <div class="radar-details-item radar" data-interval="4000">
-                        <div id="mapid" style="width: 100%; height: 100%;"></div>
-                    </div> --> 
-                    <!-- Will come back to this another time. -->
+                    <div class="radar-details-item" id="radar-sm-container" data-interval="15000" include="true">
+                        <!-- <div id="mapid" style="width: 100%; height: 100%;"></div> --><!-- May come back to this another time. -->
+                        <iframe id="radar-sm" src=""></iframe>
+                    </div>
                 </div>
             </div>
         </div>
@@ -257,6 +259,12 @@
         <div class="outlook-description"> <!-- Details -->
             <div class="dailies-carousel">
                 <div class="dailies-item">
+                    <b>Data Sources:</b>&nbsp;&nbsp;
+                    <a href="https://www.weather.gov/documentation/services-web-api" target="_blank">National Weather Service</a>,&nbsp;&nbsp;
+                    <a href="https://openweathermap.org/api/one-call-3" target="_blank">Open Weather Map</a>,&nbsp;&nbsp;
+                    <a href="https://www.rainviewer.com/map.html" target="_blank">RainViewer</a>
+                </div>
+                <div class="dailies-item">
                     <b><span id="p2_name"></span>:</b> <span id="p2_desc"></span><br \>
                     <b><span id="p3_name"></span>:</b> <span id="p3_desc"></span>
                 </div>
@@ -285,8 +293,3 @@
 
 </body>
 </html>
-
-
-<!-- 
-<iframe src="https://docs.google.com/presentation/d/e/2PACX-1vTu8Tf6ldutjQxl8sxkmfC9f50ibbXfOgYWbB-5zMJ5vfrZzOwkv8e2USEhLkWLzxOY0BvOFLPRCyQM/embed?start=true&loop=true&delayms=3000" frameborder="0" width="1280" height="749" allowfullscreen="true" mozallowfullscreen="true" webkitallowfullscreen="true"></iframe>
--->
