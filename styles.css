@@ -42,7 +42,7 @@ body {
 
         .slideshow {
             flex: 2; /* takes up 2/3 of the width */ 
-            background-color: #ffffffff;
+            background-color: transparent;
             width: 1280px;
             height: 690px;
         }
@@ -67,7 +67,7 @@ body {
                 .current-weather-container {
                     align-items: center;
                     justify-content: center;
-                    margin-top: 10px;
+                    margin-top: 84px;
                 }
 
                     .weather-icon {                        
@@ -94,7 +94,7 @@ body {
                     }
 
             .radar-details-carousel {
-                height: 50%;
+                height: 330px;
                 position: relative;
                 overflow: hidden; /* hide carousel items that are out of view */
             }
@@ -103,7 +103,6 @@ body {
                 width: 100%;
                 height: 100%; /* covers the full height of the carousel container */
                 position: absolute;
-                top: 2.5%;
                 left: 0;
                 display: none; /* initially hide all items */
             }
@@ -118,11 +117,25 @@ body {
             }
 
             .detailed-conditions {
-                margin-top: 30px;
+/*                margin-top: 30px;*/
                 margin-left: 20px;
                 font-size: 20px;
                 color: white;
                 overflow-y: auto;  /* to scroll if content overflows */
+            }
+
+            #radar-lg {
+                flex: 2; /* takes up 2/3 of the width */ 
+                background-color: transparent;
+                width: 1280px;
+                height: 690px;
+                display: none;
+            }
+
+            #radar-sm {
+                width:100%;
+                height:330px;
+                border:0;
             }
 
             .con-lbl {
@@ -221,4 +234,10 @@ body {
         display: none;
         font-size: 16px;
         margin-left: 20px;
-}
+    }
+    
+    /* Hiding reference links */
+    a {
+        color: white;
+        text-decoration: none;
+    }
